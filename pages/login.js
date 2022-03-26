@@ -5,13 +5,14 @@ import Image from "next/image";
 import logo from "../public/iitgnlogo.png";
 import { IconButton, Button, Alert } from "@mui/material";
 import VisibilityIcon from "@mui/icons-material/Visibility";
-import { auth } from "../firebase";
+import { auth, db } from "../firebase";
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   onAuthStateChanged,
 } from "firebase/auth";
 import * as EmailValidator from "email-validator";
+import { doc, setDoc } from "firebase/firestore";
 
 export default function Login() {
   const emailRef = useRef(null);
@@ -26,7 +27,8 @@ export default function Login() {
   useEffect(() => {
     onAuthStateChanged(auth, (user) => {
       if (user) {
-        window.location.href = "/homepage";
+        // window.location.href = "/homepage";
+        console.log("Effect", user.uid);
       }
     });
   }, []);
@@ -75,7 +77,15 @@ export default function Login() {
           passRef.current.value
         )
           .then((userCred) => {
-            console.log(userCred.user);
+            console.log("Uid:", userCred.user.uid);
+            let docRef = doc(db, "students", userCred.user.uid);
+            setDoc(docRef, {
+              name: name,
+              email: emailRef.current.value,
+            }).then(() => {
+              console.log("Success");
+              window.location.href = "/homepage";
+            });
           })
           .catch((error) => {
             setError("Credentials already in use");
@@ -119,7 +129,7 @@ export default function Login() {
         passRef.current.value
       )
         .then((userCred) => {
-          console.log(userCred.user);
+          window.location.href = "/homepage";
         })
         .catch((error) => {
           error.code === "auth/user-not-found"
