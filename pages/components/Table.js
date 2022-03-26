@@ -1,9 +1,23 @@
 import { useTable } from 'react-table';
-import React, {useState} from 'react';
+import React, {useState, useEffect} from 'react';
 import Button from '@mui/material/Button';
 import { Box } from '@mui/system';
 import styled from "styled-components";
 import ModalUnstyled from '@mui/base/ModalUnstyled';
+import {doc, deleteDoc} from "firebase/firestore";
+import {db} from "../../firebase";
+import { onAuthStateChanged } from "firebase/auth";
+import { auth } from "../../firebase";
+import { onSnapshot, collection } from "firebase/firestore";
+import Table from '@mui/material/Table';
+import TableBody from '@mui/material/TableBody';
+import TableCell from '@mui/material/TableCell';
+import TableContainer from '@mui/material/TableContainer';
+import TableHead from '@mui/material/TableHead';
+import TableRow from '@mui/material/TableRow';
+import Paper from '@mui/material/Paper';
+import Checkbox from '@mui/material/Checkbox';
+
 
 import AddCourseModal from './AddCourse';
 
@@ -72,46 +86,47 @@ const style = {
   pb: 3,
 };
 
-function Table({ columns, data }) {
-  // Use the state and functions returned from useTable to build your UI
-  const {
-    getTableProps,
-    getTableBodyProps,
-    headerGroups,
-    rows,
-    prepareRow,
-  } = useTable({
-    columns,
-    data,
-  })
+// function Table({ columns, data }) {
+//   // Use the state and functions returned from useTable to build your UI
+//   const {
+//     getTableProps,
+//     getTableBodyProps,
+//     headerGroups,
+//     rows,
+//     prepareRow,
+//   } = useTable({
+//     columns,
+//     data,
+//   })
 
-  // Render the UI for your table
-  return (
-    <table {...getTableProps()}>
-      <thead>
-        {headerGroups.map(headerGroup => (
-          <tr {...headerGroup.getHeaderGroupProps()}>
-            {headerGroup.headers.map(column => (
-              <th {...column.getHeaderProps()} style={{backgroundColor: "rgb(1, 29, 67)", color: "white", fontWeight: "500"}}>{column.render('Header')}</th>
-            ))}
-          </tr>
-        ))}
-      </thead>
-      <tbody {...getTableBodyProps()}>
-        {rows.map((row, i) => {
-          prepareRow(row)
-          return (
-            <tr {...row.getRowProps()}>
-              {row.cells.map(cell => {
-                return <td {...cell.getCellProps()}>{cell.render('Cell')}</td>
-              })}
-            </tr>
-          )
-        })}
-      </tbody>
-    </table>
-  )
-}
+//   // Render the UI for your table
+//   return (
+//     <table {...getTableProps()}>
+//       <thead>
+//         {headerGroups.map(headerGroup => (
+//           <tr {...headerGroup.getHeaderGroupProps()}>
+//             {headerGroup.headers.map(column => (
+//               <th {...column.getHeaderProps()} style={{backgroundColor: "rgb(1, 29, 67)", color: "white", fontWeight: "500"}}>{column.render('Header')}</th>
+//             ))}
+//           </tr>
+//         ))}
+//       </thead>
+//       <tbody {...getTableBodyProps()}>
+//         {rows.map((row, i) => {
+//           prepareRow(row)
+//           return (
+//             <tr {...row.getRowProps()}>
+//               {row.cells.map((id, cell) => {
+//                 console.log(i, cell)
+//                 return <td {...cell.getCellProps()}>{cell.render('Cell')}</td>
+//               })}
+//             </tr>
+//           )
+//         })}
+//       </tbody>
+//     </table>
+//   )
+// }
 
 const TableView = () => {
   const columns = React.useMemo(
@@ -135,19 +150,99 @@ const TableView = () => {
     ],
     []
   )
-  const data = [{course_code: 'ES654', course_name: 'Machine Learning', counted_towards: '-', credits: 4},
-                {course_code: 'MA504', course_name: 'Linear Algebra', counted_towards: '-', credits: 4}]
+  // const data = [{course_code: 'ES654', course_name: 'Machine Learning', counted_towards: '-', credits: 4},
+  //               {course_code: 'MA504', course_name: 'Linear Algebra', counted_towards: '-', credits: 4}]
   
+  const [data, setdata] = useState([]);
+  const [uid, setuid] = useState("");
   const [open, setOpen] = React.useState();
   const handleOpen = () => setOpen(true);
   const handleClose = () => setOpen(false);
 
+  useEffect(() => {
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        setuid(user.uid);
+        
+      }
+    });
+  }, []);
+
+  useEffect(() => {
+    if (uid){
+    let docRef = collection(db, "students", uid, "coursesOpted");
+    onSnapshot(docRef, (snapshot) =>{
+      let arr = [];
+      snapshot.forEach(doc =>{
+        // setdata(...data, {course_code: doc.id, course_name: doc.data().name, counted_towards: doc.data().countedTowards, credits: doc.data().credits})
+        // data1.add({course_code: doc.id, course_name: doc.data().name, counted_towards: doc.data().countedTowards, credits: doc.data().credits})
+        // console.log(doc.data())
+        let obj = {course_code: doc.id, course_name: doc.data().name, counted_towards: doc.data().countedTowards, credits: doc.data().credits}
+        arr.push(obj);
+      })
+      setdata(arr);
+    })
+  }
+  }, [uid, open])
+
+  const [tobedelete, settobedelete] = useState({});
+  useEffect(() =>{
+    let o1 = {};
+    data.map(c =>{
+      o1[c.course_code]=false;
+    })
+    settobedelete(o1);
+  }, [data])
+
+
+  const deleteCourse = async () =>{
+    Object.entries(tobedelete).map(([key, val])=>{
+      if(val){
+        deleteDoc(doc(db, "students", uid, "coursesOpted", key))
+      }
+    })
+  }
+
+  const handleChange = (event) => {
+    settobedelete({
+      ...tobedelete,
+      [event.target.name]: event.target.checked,
+    });
+  };
+
   return (
     <Styles>
-      <Table columns={columns} data={data} />
+      <TableContainer component={Paper}>
+      <Table sx={{ minWidth: 650 }} aria-label="simple table">
+        <TableHead sx={{backgroundColor: 'purple'}}>
+          <TableRow>
+            <TableCell><b>Course Code</b></TableCell>
+            <TableCell align="right"><b>Course Name</b></TableCell>
+            <TableCell align="right"><b>Counted Towards</b></TableCell>
+            <TableCell align="right"><b>Credits</b></TableCell>
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {data.map((row) => (
+            <TableRow
+              key={row.course_code}
+              // sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
+            >
+              <TableCell component="th" scope="row">
+              <Checkbox name={row.course_code} onChange={handleChange}/>
+                {row.course_code}
+              </TableCell>
+              <TableCell align="right">{row.course_name}</TableCell>
+              <TableCell align="right">{row.counted_towards}</TableCell>
+              <TableCell align="right">{row.credits}</TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </TableContainer>
       <ButtonGroup>
         <Button variant='outlined' onClick={handleOpen} style={{marginRight: "35px"}}>Add Course</Button>
-        <Button variant='outlined' color='error'>Drop Course</Button>
+        <Button variant='outlined' onClick={deleteCourse} color='error'>Drop Course</Button>
       </ButtonGroup>
       <Modal>
         <StyledModal
@@ -158,7 +253,7 @@ const TableView = () => {
           BackdropComponent={Backdrop}
         >
           <Box sx={style}>
-            <AddCourseModal />
+            <AddCourseModal uid={uid} handleClose={handleClose} setdata={setdata}/>
           </Box>
         </StyledModal>
       </Modal>
