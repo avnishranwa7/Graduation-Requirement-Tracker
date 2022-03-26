@@ -134,7 +134,7 @@ export default function Login() {
       <Head>
         <title>IITGN GR Tracker</title>
       </Head>
-      <Total style={{ height: "100vh" }}>
+      <Total>
         <ImageContainer>
           <Image src={logo} alt="IITGN" width={"180px"} height={"180px"} />
         </ImageContainer>
@@ -224,7 +224,13 @@ export default function Login() {
           </Box>
         ) : (
           // Sign-In Page
-          <Box style={error ? { marginTop: "0px" } : { marginTop: "30px" }}>
+          <Box
+            style={
+              error
+                ? { marginTop: "0px" }
+                : { marginTop: "30px", height: "330px" }
+            }
+          >
             <div align="left" style={{ marginLeft: "20px", fontSize: "20px" }}>
               <Header>Sign-In</Header>
             </div>
@@ -297,6 +303,8 @@ const ButtonContainer = styled.div`
 
 const Total = styled.div`
   background-color: #303073;
+  min-height: 100vh;
+  padding-bottom: 20px;
 `;
 
 const ImageContainer = styled.div`
