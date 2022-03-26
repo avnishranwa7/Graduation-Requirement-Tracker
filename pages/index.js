@@ -1,7 +1,19 @@
 import Head from "next/head";
-import styled from "styled-components";
+import { useEffect } from "react";
+import { onAuthStateChanged } from "firebase/auth";
+import { auth } from "../firebase";
 
 export default function Home() {
+  useEffect(() => {
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        window.location.href = "/homepage";
+      } else {
+        window.location.href = "/login";
+      }
+    });
+  }, []);
+
   return (
     <div>
       <Head>

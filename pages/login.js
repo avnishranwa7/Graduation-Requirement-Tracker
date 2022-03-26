@@ -9,6 +9,7 @@ import { auth } from "../firebase";
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
+  onAuthStateChanged,
 } from "firebase/auth";
 import * as EmailValidator from "email-validator";
 
@@ -21,6 +22,14 @@ export default function Login() {
   const [isNewUser, setIsNewUser] = useState(false);
   const [name, setName] = useState("");
   const confRef = useRef(null);
+
+  useEffect(() => {
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        window.location.href = "/homepage";
+      }
+    });
+  }, []);
 
   const domainCheck = (email) => {
     let domain = "iitgn.ac.in";
